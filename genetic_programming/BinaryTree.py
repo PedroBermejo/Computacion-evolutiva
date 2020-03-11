@@ -12,42 +12,35 @@ class Node:
 class Tree:
     def __init__(self):
         self.root = None
-        self.nodes = []
-
-    def getNodes(self):
-        return self.nodes
 
     def createFromList(self, data):
         n = iter(data)
         self.root = Node(next(n))
-        self.nodes.append(self.root)
         fringe = deque([self.root])
         while True:
             head = fringe.popleft()
             try:
                 head.l = Node(next(n))
                 fringe.append(head.l)
-                self.nodes.append(head.l)
                 head.r = Node(next(n))
                 fringe.append(head.r)
-                self.nodes.append(head.r)
             except StopIteration:
                 break                
 
     def find(self, val):
         if(self.root != None):
-            return self._find(val, self.root, self.root)
+            found = [None]
+            self._find(val, self.root, self.root, found)
+            return found[0]
         else:
             return None
 
-    def _find(self, val, node, parent):
-        if(val is node):
-            return parent
-        else:
-            if(node.l != None):
-                return self._find(val, node.l, node)
-            if(node.r != None):
-                return self._find(val, node.r, node)
+    def _find(self, val, node, parent, found):
+        if(node != None):
+            if(val is node):
+                found[0] = parent
+            self._find(val, node.l, node, found)
+            self._find(val, node.r, node, found)
 
     def deleteTree(self):
         # garbage collector will do this for us. 
@@ -56,12 +49,29 @@ class Tree:
     def printTree(self):
         if(self.root != None):
             self._printTree(self.root)
+        print()
 
     def _printTree(self, node):
         if(node != None):
-            print(str(node.v) + ' ')
+            print(node.v, end=" "),
             self._printTree(node.l)
             self._printTree(node.r)
+
+    def createEcuation(self):
+        if(self.root != None):
+            ecuation = ['']
+            self._createEcuation(self.root, ecuation)
+            return ecuation[0]
+        else:
+            return None
+
+    def _createEcuation(self, node, ecuation):
+        if(node != None):
+            ecuation[0] = ecuation[0] + '('
+            self._createEcuation(node.l, ecuation)
+            ecuation[0] = ecuation[0] + node.v
+            self._createEcuation(node.r, ecuation)
+            ecuation[0] = ecuation[0] + ')' 
 
     def getListNodes(self):
         if(self.root != None):
@@ -72,9 +82,5 @@ class Tree:
     def _getListNodes(self, node, nodes):
         if(node != None):
             nodes.append(node)
-            self._printTree(node.l)
-            self._printTree(node.r)
-
-    def printNodes(self):
-        for node in self.nodes:
-            print(node.v, end =" "),
+            self._getListNodes(node.l, nodes)
+            self._getListNodes(node.r, nodes)
