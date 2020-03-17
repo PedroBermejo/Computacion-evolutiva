@@ -12,8 +12,10 @@ class Node:
 class Tree:
     def __init__(self):
         self.root = None
+        self.creationList = None
 
     def createFromList(self, data):
+        self.creationList = data.copy()
         n = iter(data)
         self.root = Node(next(n))
         fringe = deque([self.root])
@@ -25,7 +27,7 @@ class Tree:
                 head.r = Node(next(n))
                 fringe.append(head.r)
             except StopIteration:
-                break                
+                break
 
     def find(self, val):
         if(self.root != None):
@@ -84,3 +86,8 @@ class Tree:
             nodes.append(node)
             self._getListNodes(node.l, nodes)
             self._getListNodes(node.r, nodes)
+
+    def cloneTree(self):
+        tree = Tree()
+        tree.createFromList(self.creationList)
+        return tree

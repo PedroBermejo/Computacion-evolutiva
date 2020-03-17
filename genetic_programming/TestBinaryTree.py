@@ -38,3 +38,17 @@ x=1
 print(eval(ecuation))
 x=2
 print(eval(ecuation))
+
+print('-----Test clone tree-----')
+population = helper.createPopulation(1, 4)
+helper.printPopulation(population)
+clonePopulation = []
+clonePopulation.append(population[0].cloneTree())
+helper.printPopulation(clonePopulation)
+
+print('-----Test create new population-----')
+population = helper.createPopulation(2, 4)
+helper.printPopulation(population)
+chosen = [0, 1]
+newPopulation = helper.getNewPopulation(population, chosen, 4)
+helper.printPopulation(newPopulation)
