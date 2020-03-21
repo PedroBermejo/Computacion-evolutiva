@@ -1,4 +1,5 @@
 from collections import deque
+import random
 
 class Node:
     def __init__(self, val):
@@ -13,8 +14,10 @@ class Tree:
     def __init__(self):
         self.root = None
         self.creationList = None
+        self.multiply = None
 
     def createFromList(self, data):
+        self.multiply = random.randint(1, 5)
         self.creationList = data.copy()
         n = iter(data)
         self.root = Node(next(n))
@@ -63,7 +66,7 @@ class Tree:
         if(self.root != None):
             ecuation = ['']
             self._createEcuation(self.root, ecuation)
-            return ecuation[0]
+            return str(self.multiply) + '*' + ecuation[0]
         else:
             return None
 

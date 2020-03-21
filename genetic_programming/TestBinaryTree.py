@@ -2,6 +2,7 @@ from BinaryTree import Tree
 from BinaryTree import Node
 import math
 from Helper import helper
+import random
 
 print('-----Test generate a Tree-----')
 tree = Tree()
@@ -52,3 +53,6 @@ helper.printPopulation(population)
 chosen = [0, 1]
 newPopulation = helper.getNewPopulation(population, chosen, 4)
 helper.printPopulation(newPopulation)
+
+print('-----Test Randp,-----')
+print(random.randint(0, 1000)/1000)

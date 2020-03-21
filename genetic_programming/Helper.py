@@ -73,7 +73,10 @@ class helper:
                     x = 0.000001
                 else: 
                     x = j
-                y = eval(ecuation)
+                try:
+                    y = eval(ecuation)
+                except ZeroDivisionError:
+                    y = 1000
                 diff = helper.popularity[j] - y
                 acumError = acumError + abs(diff)
             errors.append(acumError)
@@ -91,18 +94,18 @@ class helper:
 
         return yValues
 
-    def getBestInTournament(errors, length):
+    def getBestInTournament(errors, percent):
         selection =  []
-        while len(selection) < 5:
-            value = random.randint(0, length)
+        while len(selection) < percent:
+            value = random.randint(0, len(errors) -1)
             if value not in selection:
                 selection.append((value, errors[value]))
         return min(selection, key=operator.itemgetter(1))
 
-    def getChosenParents(population, errors):
+    def getChosenParents(population, errors, percent):
         chosenParents = []
         while len(chosenParents) < len(population):
-            winer = helper.getBestInTournament(errors, len(population) -1)
+            winer = helper.getBestInTournament(errors, percent)
             #print(winer)
             chosenParents.append(winer[0])
         #print(chosenParents)
@@ -125,12 +128,32 @@ class helper:
         newTree_2.createFromList(list_2)
         return newTree_1, newTree_2
 
-    def getNewPopulation(population, chosenParents, depth):
+    def replication(tree_1, tree_2):
+        newTree_1 = tree_1.cloneTree()
+        newTree_2 = tree_2.cloneTree()
+        return newTree_1, newTree_2
+
+    def mutate(tree_1, tree_2, depth):
+        newTrees = helper.createPopulation(2, depth)
+        newTree_1, waste = helper.crossover(tree_1, newTrees[0], depth)
+        newTree_2, waste = helper.crossover(tree_2, newTrees[1], depth)
+        return newTree_1, newTree_2
+
+    def getNewPopulation(errors, population, chosenParents, depth):
         newPopulation = []
         i = 0
-        print("Population:", len(population), "Chosen:", len(chosenParents))
+        #print("Population:", len(population), "Chosen:", len(chosenParents))
         while(i < len(chosenParents)):
-            child_1, child_2 = helper.crossover(population[i], population[i+1], depth)
+            randNumb = random.randint(0, 1000)/1000
+            child_1, child_2 = None, None
+            if(randNumb <= 0.1):
+                winer_1 = helper.getBestInTournament(errors, 10)
+                winer_2 = helper.getBestInTournament(errors, 10)
+                child_1, child_2 = helper.replication(population[winer_1[0]], population[winer_2[0]])
+            elif(randNumb <= 0.8):
+                child_1, child_2 = helper.crossover(population[i], population[i+1], depth)
+            else:
+                child_1, child_2 = helper.mutate(population[i], population[i+1], depth)
             i = i+2
             newPopulation.append(child_1)
             newPopulation.append(child_2)
@@ -146,12 +169,12 @@ class helper:
         fig, ax = plt.subplots(1, 2, figsize=(12,5))
         ax[0].set_xlabel('X generations')
         ax[0].set_ylabel('Y error')
-        ax[0].title.set_text("History")
-        ax[0].axis([0, 110, 0, 1000])
+        ax[0].title.set_text("Current error: " + str(errors[minIndx]))
+        ax[0].axis([0, 110, 0, 100])
         ax[0].scatter(1, errors[minIndx])
         # Cities Figure
-        ax[1].set_xlabel('X axis')
-        ax[1].set_ylabel('Y axis')
+        ax[1].set_xlabel('X time')
+        ax[1].set_ylabel('Y popularity')
         ax[1].title.set_text("Ecuation: " + population[minIndx].createEcuation())
         ax[1].axis([0, 11, 0, 100])
         x = []
@@ -161,21 +184,40 @@ class helper:
         ax[1].plot(x,y)
         ax[1].plot(x,helper.popularity)
 
-    def updateGraphs(i, population, erros):
+    def updateGraphs(i, population, errors):
         # Update history graph
-        minIndx = erros.index(min(erros))
+        minIndx = errors.index(min(errors))
         global best
-        if(erros[minIndx] < best[2]):
-            best = (i, population[minIndx], erros[minIndx])
-        print(i, erros[minIndx])
-        ax[0].scatter(i, erros[minIndx])
+        if(errors[minIndx] < best[2]):
+            best = (i, population[minIndx], errors[minIndx])
+        print(i, errors[minIndx])
+        ax[0].scatter(i, errors[minIndx])
+        ax[0].title.set_text("Current error: " + str(errors[minIndx]))
         # Replace coordenates graph
         x = []
         ax[1].cla()
+        ax[1].set_xlabel('X time')
+        ax[1].set_ylabel('Y popularity')
         ax[1].title.set_text("Ecuation: " + population[minIndx].createEcuation())
         for j in range(len(helper.popularity)):
             x.append(j)
         y = helper.getYvaluesFromTree(population[minIndx])
-        ax[1].plot(x,y)
-        ax[1].plot(x,helper.popularity)
-        plt.pause(0.1)
+        ax[1].plot(x, y)
+        ax[1].plot(x, helper.popularity)
+        plt.pause(0.01)
+
+    def printBest(i):
+        print("Best: ", best[0], best[2])
+        ax[0].scatter(i, best[2])
+        ax[0].title.set_text("Lowest error: " + str(best[2]))
+        x = []
+        ax[1].cla()
+        ax[1].set_xlabel('X time')
+        ax[1].set_ylabel('Y popularity')
+        ax[1].title.set_text("Ecuation: " + best[1].createEcuation())
+        for j in range(len(helper.popularity)):
+            x.append(j)
+        y = helper.getYvaluesFromTree(best[1])
+        ax[1].plot(x, y)
+        ax[1].plot(x, helper.popularity)
+        plt.pause(0.01)
