@@ -5,7 +5,6 @@ pygame.init()
 pygame.display.set_caption("BOARD")
 
 helper = Helper()
-helper.resetBoard()
 
 timer = pygame.time.Clock()
 finished_game = False
@@ -20,8 +19,13 @@ while finished_game is False:
         startP, endP = helper.getRandomStartEndPositions()
         print("Start position:", startP)
         print("End position:", endP)
-        population = helper.createPopulation(2, startP, endP)
+        population = helper.createPopulation(1, startP, endP)
         helper.printPopulation(population)
+        for matrix in population:
+            helper.resetBoard(matrix)
+            pygame.display.flip()
+            timer.tick(5)
+            
         finished_genetic = True
 
 pygame.quit()
