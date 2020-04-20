@@ -1,5 +1,9 @@
 import pygame
+import operator
 from Helper import Helper
+
+def job():
+    print("I'm working...")
 
 pygame.init()
 pygame.display.set_caption("BOARD")
@@ -19,13 +23,8 @@ while finished_game is False:
         startP, endP = helper.getRandomStartEndPositions()
         print("Start position:", startP)
         print("End position:", endP)
-        population = helper.createPopulation(1, startP, endP)
-        helper.printPopulation(population)
-        for matrix in population:
-            helper.resetBoard(matrix)
-            pygame.display.flip()
-            timer.tick(5)
-            
+        population = helper.createPopulation(10, startP, endP)
+        helper.resetBoard(min(population, key=operator.itemgetter(1))[0])
         finished_genetic = True
 
 pygame.quit()

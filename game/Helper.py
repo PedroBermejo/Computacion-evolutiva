@@ -9,6 +9,8 @@ class Helper:
         self.WHITE = (255, 255, 255)
         self.BLUE = (0, 0, 255)
         self.GREEN = (0, 139, 139)
+        self.GRAY = (150, 150, 150)
+        self.RED = (255, 0, 0)
         self.boardSize = [688, 592]
         self.screen = pygame.display.set_mode(self.boardSize)
         self.boardNumber = 16
@@ -22,18 +24,31 @@ class Helper:
 
     def resetBoard(self, matrix):
         self.screen.fill(self.WHITE)
-        color = 0
+        colorInd = 0
+        font = pygame.font.Font('freesansbold.ttf', 32)
         for i in range(0, self.boardNumber):
+            color = None
             for j in range(0, self.boardNumber):
-                if matrix[i][j] > 0:
-                    pygame.draw.rect(self.screen, self.BLUE, [i*self.width, j*self.height, self.width, self.height], 0)
-                elif color % 2 == 0:
-                    pygame.draw.rect(self.screen, self.BLACK, [i*self.width, j*self.height, self.width, self.height], 0)
+                if matrix[j][i] == -1:
+                    color = self.BLUE
+                elif matrix[j][i] == -2:
+                    color = self.GREEN
+                elif matrix[j][i] == 0:
+                    if colorInd % 2 == 0:
+                        color = self.BLACK
+                    else:
+                        color = self.WHITE
                 else:
-                    pygame.draw.rect(self.screen, self.WHITE, [i*self.width, j*self.height, self.width, self.height], 0)
-                color += 1
-            color += 1
-
+                    color = self.GRAY
+                pygame.draw.rect(self.screen, color, [i*self.width, j*self.height, self.width, self.height], 0)
+                if matrix[j][i] > 0:
+                    font = pygame.font.Font('freesansbold.ttf', 32) 
+                    text = font.render(str(matrix[j][i]), False, self.RED)
+                    textRect = text.get_rect()
+                    textRect.center = (i*self.width + self.width / 2, j*self.height + self.height / 2) 
+                    self.screen.blit(text, textRect) 
+                colorInd += 1
+            colorInd += 1
 
     def getRandomStartEndPositions(self):
         startP = (random.randint(0, self.boardNumber / 4 -1), random.randint(0, self.boardNumber -1))
@@ -51,34 +66,45 @@ class Helper:
             for j in self.X_2:
                 Y = eval(i)
                 X = eval(j)
-                if(Y >= 0 and Y < self.boardNumber and X >= 0 and X < self.boardNumber):
-                    posibles.append([Y, X]) 
+                if(Y >= 0 and Y < self.boardNumber and X >= 0 and X < self.boardNumber
+                and (matrix[Y][X] is 0 or matrix[Y][X] is -2)):
+                    posibles.append([Y, X])
         for i in self.Y_2:
             for j in self.X_1:
                 Y = eval(i)
                 X = eval(j)
-                if(Y >= 0 and Y < self.boardNumber and X >= 0 and X < self.boardNumber):
+                if(Y >= 0 and Y < self.boardNumber and X >= 0 and X < self.boardNumber
+                and (matrix[Y][X] is 0 or matrix[Y][X] is -2)):
                     posibles.append([Y, X])
         return posibles
                 
-    def createEmptyMatrix(self):
-        return [[0 for x in range(self.boardNumber)] for y in range(self.boardNumber)]
+    def createEmptyMatrix(self, startP, endP):
+        matrix = [[0 for x in range(self.boardNumber)] for y in range(self.boardNumber)]
+        matrix[startP[0]][startP[1]] = -1
+        matrix[endP[0]][endP[1]] = -2
+        return matrix
 
     # x is the with, y is the height, in the matrix is matrix[y][x]
     def createChrom(self, startP, endP):
-        matrix = self.createEmptyMatrix()
-        matrix[startP[0]][startP[1]] = 2
-        matrix[endP[0]][endP[1]] = 2 
+        matrix = self.createEmptyMatrix(startP, endP)
         goingP = [startP[0], startP[1]]
-        iterations = 0
-        while (endP[0] != goingP[0] or endP[1] != goingP[1]) and iterations < 1:
-            print("Iteration:", iterations)
+        iterations = 1
+        while True:
+            #print("Iteration:", iterations)
             posibleMoves = self.getPosibleMoves(matrix, goingP)
             for move in posibleMoves:
-                matrix[move[0]][move[1]] = 1
-            iterations = iterations + 1
-        return matrix
-        
+                if move[0] is endP[0] and move[1] is endP[1]:
+                    return (matrix, iterations)
+            if len(posibleMoves) is 0:
+                matrix = self.createEmptyMatrix(startP, endP)
+                goingP = [startP[0], startP[1]]
+                iterations = 0
+            else:
+                chosen = random.randint(0, len(posibleMoves) -1)
+                matrix[posibleMoves[chosen][0]][posibleMoves[chosen][1]] = iterations
+                goingP[0] = posibleMoves[chosen][0]
+                goingP[1] = posibleMoves[chosen][1]
+                iterations = iterations + 1        
 
     def createPopulation(self, lengthPopulation, startP, endP):
         population = []
@@ -86,15 +112,28 @@ class Helper:
             population.append(self.createChrom(startP, endP))
         return population
 
-
     def printPopulation(self, population):
         for c in range(len(population)):
             print("Chrom number", c)
-            for y in range(len(population[c])):
-                for x in range(len(population[c][y])):
-                    print(population[c][y][x], end=" ")
+            for y in range(len(population[c][0])):
+                for x in range(len(population[c][0][y])):
+                    print(population[c][0][y][x], end=" ")
                 print()
 
-'''
+    def getBestInTournament(errors, percent):
+        selection =  []
+        while len(selection) < percent:
+            value = random.randint(0, len(errors) -1)
+            if value not in selection:
+                selection.append((value, errors[value]))
+        return min(selection, key=operator.itemgetter(1))
 
-'''
+    def getNewPopulation(self, population):
+        children = []
+        children.append(min(population, key=operator.itemgetter(1)))
+        while len(chosenParents) < len(population)*2:
+            winer = helper.getBestInTournament(errors, percent)
+            #print(winer)
+            chosenParents.append(winer[0])
+        #print(chosenParents)
+        return chosenParents
