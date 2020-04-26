@@ -22,7 +22,8 @@ class Helper:
         self.X_1 = ['x + 1', 'x - 1']
         self.X_2 = ['x + 2', 'x - 2']
 
-    def resetBoard(self, matrix):
+    def resetBoard(self, matrix, generation):
+        pygame.display.set_caption("Generation: " + str(generation))
         self.screen.fill(self.WHITE)
         colorInd = 0
         font = pygame.font.Font('freesansbold.ttf', 32)
@@ -42,13 +43,13 @@ class Helper:
                     color = self.GRAY
                 pygame.draw.rect(self.screen, color, [i*self.width, j*self.height, self.width, self.height], 0)
                 if matrix[j][i] > 0:
-                    font = pygame.font.Font('freesansbold.ttf', 32) 
                     text = font.render(str(matrix[j][i]), False, self.RED)
                     textRect = text.get_rect()
                     textRect.center = (i*self.width + self.width / 2, j*self.height + self.height / 2) 
                     self.screen.blit(text, textRect) 
                 colorInd += 1
             colorInd += 1
+        
 
     def getRandomStartEndPositions(self):
         startP = (random.randint(0, self.boardNumber / 4 -1), random.randint(0, self.boardNumber -1))
@@ -62,22 +63,22 @@ class Helper:
         posibles = []
         y = goingP[0]
         x = goingP[1]
-        for i in self.Y_1:
-            for j in self.X_2:
-                Y = eval(i)
-                X = eval(j)
+        for i in self.X_1:
+            for j in self.Y_2:
+                Y = eval(j)
+                X = eval(i)
                 if(Y >= 0 and Y < self.boardNumber and X >= 0 and X < self.boardNumber
                 and (matrix[Y][X] is 0 or matrix[Y][X] is -2)):
                     posibles.append([Y, X])
-        for i in self.Y_2:
-            for j in self.X_1:
-                Y = eval(i)
-                X = eval(j)
+        for i in self.X_2:
+            for j in self.Y_1:
+                Y = eval(j)
+                X = eval(i)
                 if(Y >= 0 and Y < self.boardNumber and X >= 0 and X < self.boardNumber
                 and (matrix[Y][X] is 0 or matrix[Y][X] is -2)):
                     posibles.append([Y, X])
         return posibles
-                
+
     def createEmptyMatrix(self, startP, endP):
         matrix = [[0 for x in range(self.boardNumber)] for y in range(self.boardNumber)]
         matrix[startP[0]][startP[1]] = -1
@@ -94,11 +95,11 @@ class Helper:
             posibleMoves = self.getPosibleMoves(matrix, goingP)
             for move in posibleMoves:
                 if move[0] is endP[0] and move[1] is endP[1]:
-                    return (matrix, iterations)
+                    return (matrix, iterations + 1)
             if len(posibleMoves) is 0:
                 matrix = self.createEmptyMatrix(startP, endP)
                 goingP = [startP[0], startP[1]]
-                iterations = 0
+                iterations = 1
             else:
                 chosen = random.randint(0, len(posibleMoves) -1)
                 matrix[posibleMoves[chosen][0]][posibleMoves[chosen][1]] = iterations
@@ -114,26 +115,84 @@ class Helper:
 
     def printPopulation(self, population):
         for c in range(len(population)):
-            print("Chrom number", c)
-            for y in range(len(population[c][0])):
-                for x in range(len(population[c][0][y])):
-                    print(population[c][0][y][x], end=" ")
+            print("Generation:", c, "Moves:", population[c][1])
+            for i in range(len(population[c][0])):
+                for j in range(len(population[c][0][i])):
+                    print(population[c][0][i][j], end=" ")
                 print()
 
-    def getBestInTournament(errors, percent):
-        selection =  []
-        while len(selection) < percent:
-            value = random.randint(0, len(errors) -1)
-            if value not in selection:
-                selection.append((value, errors[value]))
-        return min(selection, key=operator.itemgetter(1))
+    def exchage(self, parent_1, parent_2, chosenPoint, startP, endP):
+        crossPointChild_1 = parent_1[0][chosenPoint[0]][chosenPoint[1]]
+        crossPointChild_2 = parent_2[0][chosenPoint[0]][chosenPoint[1]]
+        print(chosenPoint, crossPointChild_1, crossPointChild_2)
 
-    def getNewPopulation(self, population):
-        children = []
-        children.append(min(population, key=operator.itemgetter(1)))
-        while len(chosenParents) < len(population)*2:
-            winer = helper.getBestInTournament(errors, percent)
-            #print(winer)
-            chosenParents.append(winer[0])
-        #print(chosenParents)
-        return chosenParents
+        matrix_1 = self.createEmptyMatrix(startP, endP)
+        matrix_2 = self.createEmptyMatrix(startP, endP)
+        iterations_1 = 1
+        iterations_2 = 1
+        # Generate matrix 1 with firt part of parent_1 and second part of parent_2
+        for i in range(0, self.boardNumber):
+            for j in range(0, self.boardNumber):
+                if parent_1[0][j][i] > 0 and parent_1[0][j][i] <= crossPointChild_1:
+                    matrix_1[j][i] = iterations_1
+                    iterations_1 = iterations_1 + 1
+                if parent_2[0][j][i] > 0 and parent_2[0][j][i] <= crossPointChild_2:
+                    matrix_2[j][i] = iterations_2
+                    iterations_2 = iterations_2 + 1
+                
+        for i in range(0, self.boardNumber):
+            for j in range(0, self.boardNumber):
+                if parent_1[0][j][i] > crossPointChild_1:
+                    matrix_2[j][i] = iterations_2
+                    iterations_2 = iterations_2 + 1
+                if parent_2[0][j][i] > crossPointChild_2:
+                    matrix_1[j][i] = iterations_1
+                    iterations_1 = iterations_1 + 1
+                
+
+        print("Iterations 1:", iterations_1)
+        print("Iterations 2:", iterations_2)
+
+        return (matrix_1, iterations_1), (matrix_2, iterations_2)
+
+
+    def reproduce(self, parent_1, parent_2, startP, endP):
+        crossPoints = []
+        for i in range(0, self.boardNumber):
+            for j in range(0, self.boardNumber):
+                if parent_1[0][j][i] > 0 and parent_2[0][j][i] > 0:
+                    crossPoints.append((j, i))
+
+        if len(crossPoints) is 0:
+            return parent_1, parent_2
+        else:
+            chosenPoint = random.randint(0, len(crossPoints) -1)
+            return self.exchage(parent_1, parent_2, crossPoints[chosenPoint], startP, endP)
+
+
+    def generateNewPopulation(self, population, startP, endP):
+        newPopulation = []
+        i = 0
+        while len(newPopulation) < len(population):
+            rand_ind_1 = random.randint(0, len(population) -1)
+            rand_ind_2 = rand_ind_1
+            while rand_ind_2 is rand_ind_1:
+                rand_ind_2 = random.randint(0, len(population) -1)
+                
+            child_1, child_2 = self.reproduce(population[rand_ind_1], population[rand_ind_2], startP, endP)
+            i = i + 2
+            newPopulation.append(child_1)
+            newPopulation.append(child_2)
+    
+        # This will get the best in old popoulation and replace worst in new population    
+        maxValueInd = newPopulation.index(max(newPopulation, key=operator.itemgetter(1)))
+        newPopulation[maxValueInd] = min(population, key=operator.itemgetter(1))
+        
+        return newPopulation
+
+    def generateNewPopulation_2(self, population, startP, endP):
+        newPopulation = self.createPopulation(len(population), startP, endP)
+        newPopulation.append(min(population, key=operator.itemgetter(1)))
+
+        return newPopulation
+            
